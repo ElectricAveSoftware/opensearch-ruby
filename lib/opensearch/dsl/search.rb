@@ -65,6 +65,7 @@ module OpenSearch
         def initialize(*args, &block)
           @options = Options.new(*args)
           return unless block
+          @block = block
           block.arity < 1 ? instance_eval(&block) : block.call(self)
         end
 
@@ -244,13 +245,20 @@ module OpenSearch
         # Delegates to the methods provided by the {Options} class
         #
         def method_missing(name, *args, &block)
-          return super unless @options.respond_to? name
-          @options.__send__ name, *args, &block
-          self
+          if @options.respond_to? name
+            @options.__send__(name, *args, &block)
+            self
+          elsif @block
+            @block.binding.eval("self").send(name, *args, &block)
+          else
+            super
+          end
         end
 
         def respond_to_missing?(method_name, include_private = false)
-          @options.respond_to?(method_name) || super
+          @options.respond_to?(method_name) ||
+            @block && @block.binding.eval("self").respond_to?(method_name) ||
+            super
         end
 
         # Converts the search definition to a Hash

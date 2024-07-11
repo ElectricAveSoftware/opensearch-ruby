@@ -45,12 +45,19 @@ module OpenSearch
         #
         def method_missing(name, *args, &block)
           klass = Utils.__camelize(name)
-          raise NoMethodError, "undefined method '#{name}' for #{self}" unless Queries.const_defined? klass
-          @value = Queries.const_get(klass).new(*args, &block)
+          if Queries.const_defined? klass
+            @value = Queries.const_get(klass).new *args, &block
+          elsif @block
+            @block.binding.eval('self').send(name, *args, &block)
+          else
+            super
+          end
         end
 
         def respond_to_missing?(method_name, include_private = false)
-          Queries.const_defined?(Utils.__camelize(method_name)) || super
+          Queries.const_defined?(Utils.__camelize(method_name)) ||
+            @block && @block.binding.eval("self").respond_to?(method_name) ||
+            super
         end
 
         # Evaluates any block passed to the query
