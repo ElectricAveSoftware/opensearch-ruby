@@ -184,6 +184,21 @@ module OpenSearch
               @hash
             end
           end
+
+          private
+
+          def method_missing(name, *args, &block)
+            if @block
+              @block.binding.eval("self").send(name, *args, &block)
+            else
+              super
+            end
+          end
+
+          def respond_to_missing?(method_name, include_private = false)
+            @block && @block.binding.eval("self").respond_to?(method_name) ||
+              super
+          end
         end
       end
     end

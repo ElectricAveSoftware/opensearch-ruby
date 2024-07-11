@@ -47,7 +47,7 @@ module OpenSearch
             if Aggregations.const_defined? klass
               @value = Aggregations.const_get(klass).new *args, &block
             elsif @block
-              @block.binding.eval('self').send(name, *args, &block)
+              @block.binding.eval("self").send(name, *args, &block)
             else
               super
             end
